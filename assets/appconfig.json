@@ -1,0 +1,16 @@
+{
+    "apiRootUrl": "https://airobotic-api-v1.k8s-dev.omt.vn",
+    "recaptcha":"6LfJQfAgAAAAAPEC9cEejeAqk3bcJ9-XMKjezHgl",
+    "firebaseConfig" : {
+        "apiKey": "AIzaSyAeOXhZrhaadsOIp1e_0tklcnH8H5KfRZ8",
+        "authDomain": "realtimedbtest-d8c6b.firebaseapp.com",
+        "databaseURL": "https://realtimedbtest-d8c6b-default-rtdb.asia-southeast1.firebasedatabase.app",
+        "projectId": "realtimedbtest-d8c6b",
+        "storageBucket": "realtimedbtest-d8c6b.appspot.com",
+        "messagingSenderId": "787425357847",
+        "appId": "1:787425357847:web:15d071075d1961e0a92c52"
+    },
+    "fcmPublicKey":"BEzayGDOtlJdRkTi8LTTHv6Qz6ji3UgXr6DFMiBvXjDM5H1G4AwU_bC3vYt9-0sown7fcl4T1xuyYX_siU2ZDmc"
+
+}
+

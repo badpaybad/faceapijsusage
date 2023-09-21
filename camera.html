@@ -1,0 +1,281 @@
+<table>
+    <tr>
+        <td>
+            <div style="position: relative">
+                <video id="cameraToCapture" src="" style="width: 640px; height: 480px;"></video>
+
+                <canvas id="overlay" style="width: 640px; height: 480px; position: absolute; top:0px; left: 0px;"></canvas>
+            </div>
+
+            <canvas id="canvasToSnapShoot" width="640" height="480" style="display:none"></canvas>
+        </td>
+        <td>
+            <div>
+                <button onclick="snapPhoto()"> Take photo</button>
+            </div>
+
+            <div id="takenphotos"> </div>
+
+        </td>
+    </tr>
+</table>
+
+
+<script src="./assets/face-api.js"></script>
+
+
+<script>
+
+    function FaceApiJsHelper() {
+
+        var $this = this;
+
+        var _camera;
+        var _cameraOverlay;
+        var _cameraCanvas;
+        var _cameraFront = "user"
+        var _cameraW = 640;
+        var _cameraH = 480;
+        var _cameraStarted = false;
+
+        console.log(faceapi.nets);
+
+
+        $this._camera = document.getElementById("cameraToCapture");
+        $this._cameraCanvas = document.getElementById("canvasToSnapShoot");
+        $this._cameraOverlay = document.getElementById("overlay");
+
+        $this.stopCamera = function () {
+            $this._camera.pause();
+            $this._cameraStarted = false;
+            if ($this._camera.srcObject != null && $this._camera.srcObject != undefined) {
+                $this._camera.srcObject.getTracks().forEach(t => {
+                    if (t.readyState == 'live'
+                        //&& t.kind === 'video'
+                        //&& track.kind === 'audio'
+                    ) {
+                        t.stop();
+                    }
+                })
+            }
+
+            clearInterval($this.intervalFaceDetect);
+        }
+
+        $this.intervalFaceDetect = 0;
+
+        $this.startCamera = function () {
+
+            const isScreenSmall = window.matchMedia("(max-width: 700px)");
+
+            $this._camera.style.width = "100%";
+            if (isScreenSmall.matches) {
+                // If media query matches
+                $this._cameraW = $this._camera.offsetWidth;
+                $this._cameraH = (240 * $this._camera.offsetWidth) / 320;
+
+            } else {
+                $this._cameraW = $this._camera.offsetWidth;
+                $this._cameraH = (320 * $this._camera.offsetWidth) / 480;
+            }
+
+            var constraints = { video: { facingMode: $this._cameraFront, width: $this._cameraW, height: $this._cameraH } };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function (mediaStream) {
+
+                    //this out scope of angular
+                    $this._camera.srcObject = mediaStream;
+                    $this._camera.onloadedmetadata = async function (_e) {
+                        $this._camera.play();
+
+                        $this._cameraStarted = true;
+
+                    };
+
+                }).catch(function (err) {
+                    alert("Can not open camera, please reload page then retry. " + err.name + ": " + err.message)
+                    console.log(err.name + ": " + err.message);
+                });
+
+
+            $this._camera.addEventListener("playing", async function () {
+                //this out scope of angular
+                // $self._camera              
+            });
+
+            $this.detectFace();
+
+        }
+
+        $this.captureVideoToCanvas = function () {
+
+            var tempCanvas = document.createElement('canvas');
+            tempCanvas.width = $this._cameraW;
+            tempCanvas.height = $this._cameraH;
+            tempCanvas.getContext('2d').drawImage($this._camera, 0, 0, tempCanvas.width, tempCanvas.height);
+
+            return tempCanvas;
+        }
+
+        $this.listCaptureInBase64 = [];
+
+        $this.takePhotoCamera = function () {
+
+            var tempCanvas = document.createElement('canvas');
+            tempCanvas.width = $this._cameraW;
+            tempCanvas.height = $this._cameraH;
+
+            tempCanvas.getContext('2d').drawImage($this._camera, 0, 0, tempCanvas.width, tempCanvas.height);
+
+            var tempBase64 = tempCanvas.toDataURL('image/jpeg');
+
+            $this.listCaptureInBase64.push(tempBase64);
+
+            // // const canvas = this._faceapi.createCanvasFromMedia(this._camera);
+            // // //let container = document.getElementById($self.cameraContainerDomId);
+            // // //container.append(canvas);
+
+            // // canvas.getContext('2d').drawImage(this._camera, 0, 0, canvas.width, canvas.height);
+            // // let image_data_url_base64 = canvas.toDataURL('image/jpeg');
+
+            // // // data url of the image
+            // // //console.log(image_data_url_base64);
+
+            // // this.snapCamera.emit(image_data_url_base64);
+
+            // // this.listCaptureInBase64.push(image_data_url_base64);
+        }
+
+        $this.removePhotoCamera = function (p) {
+            $this.listCaptureInBase64 = $this.listCaptureInBase64.filter(i => i != p);
+        }
+
+        $this.detectFace = function () {
+            /// https://github.com/justadudewhohacks/face-api.js/blob/master/examples/examples-browser/views/webcamFaceDetection.html
+            // //https://justadudewhohacks.github.io/face-api.js/docs/index.html 
+            //  $this.faceapi.detectAllFaces(input).then(detections =>{
+
+            //  });
+            // faceapi.detectSingleFace(input).then(detection=>{
+
+            // })
+            faceapi.nets.ssdMobilenetv1.load('/assets/weights').then(async function (args) {
+
+                faceapi.nets.faceLandmark68Net.load('/assets/weights').then(async function () {
+
+                    faceapi.nets.ageGenderNet.load('/assets/weights').then(async function () {
+
+                        faceapi.nets.faceExpressionNet.load('/assets/weights').then(async function () {
+
+
+                            clearInterval($this.intervalFaceDetect);
+                            $this.intervalFaceDetect = setInterval(async function () {
+
+                                // ssd_mobilenetv1 options
+                                let minConfidence = 0.5
+
+                                // tiny_face_detector options
+                                let inputSize = 512
+                                let scoreThreshold = 0.5
+
+                                const options = new faceapi.SsdMobilenetv1Options({ minConfidence });
+
+                                //new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold })
+
+                                // const result = await faceapi.detectSingleFace($this._camera, options)
+                                // if (result) {
+                                //     const dims = faceapi.matchDimensions($this._cameraOverlay, $this._camera, true);
+
+                                //     faceapi.draw.drawDetections($this._cameraOverlay, faceapi.resizeResults(result, dims));
+                                // }
+
+
+                                const results = await faceapi.detectAllFaces($this._camera, options).withFaceLandmarks()
+                                    .withAgeAndGender()
+                                    .withFaceExpressions();
+                                const dims = faceapi.matchDimensions($this._cameraOverlay, $this._camera, true);
+
+                                const resizedResults = faceapi.resizeResults(results, dims);
+
+                                faceapi.draw.drawDetections($this._cameraOverlay, resizedResults);
+
+                                faceapi.draw.drawFaceLandmarks($this._cameraOverlay, resizedResults);
+
+
+                                resizedResults.forEach(result => {
+                                    const { age, gender, genderProbability } = result
+                                    new faceapi.draw.DrawTextField(
+                                        [
+                                            `${faceapi.utils.round(age, 0)} years`,
+                                            `${gender} (${faceapi.utils.round(genderProbability)})`
+                                        ],
+                                        //result.detection.box.bottomLeft
+                                        result.detection.box.topLeft
+                                    ).draw($this._cameraOverlay);
+                                });
+
+                                faceapi.draw.drawFaceExpressions($this._cameraOverlay, resizedResults, 0.05)
+
+                            }, 10);
+
+
+                        });
+
+                    });
+
+                });
+
+
+            });
+
+        }
+
+        return this;
+    }
+
+
+    var faceapijsHelper = FaceApiJsHelper();
+
+    faceapijsHelper.startCamera();
+
+    function snapPhoto() {
+
+        faceapijsHelper.takePhotoCamera();
+
+        buildListView();
+    }
+
+    function buildListView() {
+
+        var takenphotosDiv = document.getElementById('takenphotos');
+
+        takenphotosDiv.innerHTML = "";
+
+        faceapijsHelper.listCaptureInBase64.forEach(element => {
+
+            var img = document.createElement("img");
+            img.src = element;
+            img.height = 40;
+
+            var btnDel = document.createElement("button");
+            btnDel.innerText = "Remove";
+            btnDel.onclick = function () {
+
+                faceapijsHelper.removePhotoCamera(element);
+
+                buildListView();
+            }
+
+            var div = document.createElement("div");
+            div.append(btnDel);
+            div.append(img);
+
+            takenphotosDiv.append(div);
+
+        });
+
+    }
+
+
+</script>
