@@ -1,13 +1,19 @@
+<style>
+    .videoSize{
+        width: 640px;
+        height: 480px;
+    }
+</style>
 <table>
     <tr>
         <td>
-            <div style="position: relative">
-                <video id="cameraToCapture" src="" style="width: 640px; height: 480px;"></video>
+            <div style="position: relative" class="videoSize">
+                <video id="cameraToCapture" src="" class="videoSize"></video>
 
-                <canvas id="overlay" style="width: 640px; height: 480px; position: absolute; top:0px; left: 0px;"></canvas>
+                <canvas id="overlay" style=" position: absolute; top:0px; left: 0px;" class="videoSize"></canvas>
             </div>
 
-            <canvas id="canvasToSnapShoot" width="640" height="480" style="display:none"></canvas>
+            <canvas id="canvasToSnapShoot" class="videoSize" style="display:none"></canvas>
         </td>
         <td>
             <div>
@@ -30,9 +36,6 @@
 
         var $this = this;
 
-        $this._camera;
-        $this._cameraOverlay;
-        $this._cameraCanvas;
         $this._cameraFront = "user"
         $this._cameraW = 640;
         $this._cameraH = 480;
@@ -66,20 +69,37 @@
 
         $this.startCamera = function () {
 
-            const isScreenSmall = window.matchMedia("(max-width: 700px)");
+            // const isScreenSmall = window.matchMedia("(max-width: 700px)");
 
-            $this._camera.style.width = "100%";
-            if (isScreenSmall.matches) {
-                // If media query matches
-                $this._cameraW = $this._camera.offsetWidth;
-                $this._cameraH = (240 * $this._camera.offsetWidth) / 320;
+            // $this._camera.style.width = "100%";
+            // if (isScreenSmall.matches) {
+            //     // If media query matches
+            //     $this._cameraW = $this._camera.offsetWidth;
+            //     $this._cameraH = (240 * $this._camera.offsetWidth) / 320;
 
-            } else {
-                $this._cameraW = $this._camera.offsetWidth;
-                $this._cameraH = (320 * $this._camera.offsetWidth) / 480;
-            }
+            // } else {
+            //     $this._cameraW = $this._camera.offsetWidth;
+            //     $this._cameraH = (320 * $this._camera.offsetWidth) / 480;
+            // }
 
-            var constraints = { video: { facingMode: $this._cameraFront, width: $this._cameraW, height: $this._cameraH } };
+            var constraints = {
+            video: {
+              facingMode: $this._cameraFront,
+              width: {
+                min: $this._cameraW,
+                ideal: $this._cameraW,
+                max: $this._cameraW,
+                exact: $this._cameraW,
+              },
+              height: {
+                min: $this._cameraH,
+                ideal: $this._cameraH,
+                max: $this._cameraH,
+                exact: $this._cameraH,
+              },
+              require: ["width", "height"],
+            },
+          };
 
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(function (mediaStream) {
@@ -160,6 +180,9 @@
             // faceapi.detectSingleFace(input).then(detection=>{
 
             // })
+
+            //todo: load model can use Promise
+
             faceapi.nets.ssdMobilenetv1.load('/assets/weights').then(async function (args) {
 
                 faceapi.nets.faceLandmark68Net.load('/assets/weights').then(async function () {
